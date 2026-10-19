@@ -1,0 +1,10 @@
+{
+  "ret": 1, "dialog": false, "code": "200", "time": 1800000000000,
+  "data": {
+    "token": "VOORBEELDTOKEN-NIET-ECHT",
+    "userId": 1000001, "entId": 100001, "userName": "356789012345678",
+    "nickName": "Demo", "timeZone": 7200, "lang": "nl",
+    "userType": 0, "clientType": 0, "objectType": 0, "buzType": 0,
+    "mileageUnit": "0", "speedUnit": "km/h", "mapStatus": "0", "timeScale": "0"
+  }
+}

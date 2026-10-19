@@ -1,0 +1,139 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "WhatsGPS account",
+        "description": "Sign in with the same details as on www.whatsgps.com or in the WhatsGPS app.",
+        "data": {
+          "username": "Account or IMEI",
+          "password": "Password"
+        },
+        "data_description": {
+          "username": "The account name, or the IMEI number if you sign in with it."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in to WhatsGPS again",
+        "description": "WhatsGPS rejects the stored password. Enter the current password.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Account or password is incorrect.",
+      "cannot_connect": "WhatsGPS cannot be reached. Try again later.",
+      "unknown": "Unexpected error. See the log."
+    },
+    "abort": {
+      "already_configured": "This account has already been added.",
+      "reauth_successful": "Signed in again.",
+      "wrong_account": "This password belongs to another account."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Settings",
+        "data": {
+          "scan_interval": "Refresh every (seconds)"
+        },
+        "data_description": {
+          "scan_interval": "Between 30 and 600 seconds. This does not change the tracker itself; how often it reports a position depends on the mode set on the tracker."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "speed": {
+        "name": "Speed"
+      },
+      "direction": {
+        "name": "Direction"
+      },
+      "position_source": {
+        "name": "Position source",
+        "state": {
+          "not_located": "Not located",
+          "satellite": "Satellite",
+          "compass": "Compass",
+          "cell_tower": "Cell tower",
+          "wifi": "Wi-Fi",
+          "differential": "Differential"
+        }
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "offline": "Offline",
+          "not_located": "Not located",
+          "stationary": "Stationary",
+          "moving": "Moving",
+          "speeding": "Speeding",
+          "idling": "Idling"
+        }
+      },
+      "last_fix": {
+        "name": "Last position fix"
+      },
+      "last_communication": {
+        "name": "Last contact"
+      },
+      "tracker_battery": {
+        "name": "Tracker battery"
+      },
+      "stationary_since": {
+        "name": "Stationary since"
+      },
+      "external_voltage": {
+        "name": "External voltage"
+      },
+      "today_distance": {
+        "name": "Distance today"
+      },
+      "total_distance": {
+        "name": "Tracker odometer"
+      }
+    },
+    "binary_sensor": {
+      "ignition": {
+        "name": "Ignition"
+      }
+    },
+    "event": {
+      "alarm": {
+        "name": "Alarm",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "vibration": "Vibration",
+              "power_cut": "Power cut",
+              "low_battery": "Low battery",
+              "sos": "SOS",
+              "speeding": "Speeding",
+              "geofence_exit": "Geofence left",
+              "movement": "Movement",
+              "tamper": "Tampering",
+              "magnet": "Magnet",
+              "jamming": "Signal jamming",
+              "fake_base_station": "Fake base station",
+              "geofence_enter": "Geofence entered",
+              "offline": "Offline",
+              "ignition_on": "Ignition on",
+              "ignition_off": "Ignition off",
+              "collision": "Collision",
+              "tilt": "Tilt",
+              "high_temperature": "High temperature",
+              "low_temperature": "Low temperature",
+              "towing": "Towing",
+              "disconnected": "Disconnected",
+              "connected": "Connected",
+              "other": "Other"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,153 @@
+"""Alarmsoorten van WhatsGPS.
+
+De codes en Nederlandse omschrijvingen komen letterlijk uit de JavaScript van het
+webportaal (taalbestand, sleutel alarmType). In Home Assistant worden ze gegroepeerd
+tot een beperkt aantal event-types; de oorspronkelijke code en omschrijving gaan mee
+in de gegevens van elk event.
+"""
+
+from __future__ import annotations
+
+from typing import Final
+
+# Letterlijk uit het portaal (Nederlands); sommige omschrijvingen komen dubbel voor.
+ALARM_LABELS_NL: Final[dict[int, str]] = {
+    0: "Onbekende alarm",
+    1: "Trilalarm",
+    2: "Stroomuitval-alarm",
+    3: "Laag batterij-alarm",
+    4: "SOS-noodoproep",
+    5: "Snelheidsoverschrijding-alarm",
+    6: "Geofence verlaten-alarm",
+    7: "Verplaatsingsalarm",
+    8: "Laag batterij-alarm",
+    9: "Gebied verlaten-alarm",
+    10: "Sabotage-alarm",
+    11: "Sabotage-alarm",
+    12: "Magnetisch alarm",
+    13: "Sabotage-alarm",
+    14: "Bluetooth-alarm",
+    15: "Signaalstoring-alarm",
+    16: "Valse basisstation-alarm",
+    17: "Geofence betreden-alarm",
+    18: "Geofence betreden-alarm",
+    19: "Geofence verlaten-alarm",
+    20: "Deur open-alarm",
+    21: "Vermoeid rijden-alarm",
+    22: "Tweede checkpoint betreden-alarm",
+    23: "Tweede checkpoint verlaten-alarm",
+    24: "Langdurig verblijf tweede checkpoint-alarm",
+    25: "Offline-alarm",
+    26: "Geofence betreden-alarm",
+    27: "Geofence uit-alarm",
+    28: "Geofence betreden-alarm",
+    29: "Geofence uit-alarm",
+    30: "Diefstalwaarschuwing hoofdtank",
+    31: "ACC AAN Alarm",
+    32: "ACC UIT-alarm",
+    33: "Botsingsalarm",
+    34: "Te laat op werk-alarm",
+    35: "Te vroeg weg van werk-alarm",
+    36: "Wekker-alarm",
+    37: "Kantelalarm",
+    40: "Hoge temperatuur-alarm",
+    45: "Lage temperatuur-alarm",
+    50: "Overvoltage-alarm",
+    55: "Undervoltage-alarm",
+    60: "Parkeeralarm",
+    70: "Hevig accelereren-alarm",
+    71: "Hevig remmen-alarm",
+    72: "Scherpe bocht-alarm",
+    73: "Route-afwijking-alarm",
+    74: "Route-snelheidsoverschrijding-alarm",
+    76: "Parkeer-overtijd-alarm",
+    77: "Geluidsdetectie-alarm",
+    78: "Terminal losgekoppeld-alarm",
+    79: "Terminal aangesloten-alarm",
+    80: "Sleepalarm",
+    81: "Bellen",
+    82: "Roken-alarm",
+    83: "Afgeleid rijden",
+    84: "Onregelmatig rijgedrag",
+    85: "Waarschuwing voor botsing van voren",
+    86: "Rijstrookafwijking",
+    87: "Afstand te klein",
+    88: "Videosignaal verloren",
+    89: "Videobeeld geblokkeerd",
+    90: "Opslageenheid fout",
+    91: "Waarschuwing voor vermoeidheid tijdens het rijden",
+    92: "Waarschuwing voor botsing van voren",
+    93: "AC aan-alarm",
+    94: "AC uit-alarm",
+    95: "Deur open-alarm",
+    96: "Deur dicht-alarm",
+    97: "Geen gordel-alarm",
+    98: "Stationair-alarm",
+    99: "Bluetooth verbroken-alarm",
+    101: "Noodoproep",
+    102: "Beperkt rijden-alarm",
+    107: "Standaard geofence-alarm",
+    108: "Achteropkomend voertuig-alarm",
+    109: "Linker achterzijde naderingsalarm",
+    110: "Rechter achterzijde naderingsalarm",
+    111: "P1 batterijwaarschuwing",
+    114: "Anti-stoor-alarm",
+    116: "Geofence-snelheidsoverschrijding-alarm",
+    117: "Subtag hoge temperatuur-alarm",
+    118: "Subtag lage temperatuur-alarm",
+    119: "Kantelalarm",
+    120: "Binnenkomstmelding",
+    121: "Vertrekmelding",
+    122: "Lage brandstof-alarm",
+    123: "Lichte botsing-alarm",
+    124: "Gemiddelde botsing-alarm",
+    125: "Diefstalwaarschuwing hulptank",
+    127: "Hulptank brandstofdiefstal-alarm",
+    128: "Overbelastingswaarschuwing",
+    132: "Onderbelastingswaarschuwing",
+    134: "Valalarm",
+    136: "Overboordwaarschuwing",
+    137: "Ongeoorloofde deuropeningsalarm",
+    138: "Deuropentime-outalarm",
+    139: "Subtag Hoge luchtvochtigheid alarm",
+    140: "Subtag Lage luchtvochtigheid alarm",
+    141: "Waarschuwing voor plotselinge rijstrookwissel",
+    142: "Start rit",
+    143: "Waarschuwing motorkap open",
+}
+
+_GROUPS: Final[dict[str, tuple[int, ...]]] = {
+    "vibration": (1,),
+    "power_cut": (2,),
+    "low_battery": (3, 8, 111),
+    "sos": (4, 101),
+    "speeding": (5, 74, 116),
+    "geofence_exit": (6, 9, 19, 27, 29),
+    "movement": (7,),
+    "tamper": (10, 11, 13),
+    "magnet": (12,),
+    "jamming": (15, 114),
+    "fake_base_station": (16,),
+    "geofence_enter": (17, 18, 26, 28, 107),
+    "offline": (25,),
+    "ignition_on": (31,),
+    "ignition_off": (32,),
+    "collision": (33, 123, 124),
+    "tilt": (37, 119),
+    "high_temperature": (40,),
+    "low_temperature": (45,),
+    "towing": (80,),
+    "disconnected": (78,),
+    "connected": (79,),
+}
+
+EVENT_TYPE_BY_CODE: Final[dict[int, str]] = {code: name for name, codes in _GROUPS.items() for code in codes}
+EVENT_TYPES: Final[list[str]] = [*_GROUPS, "other"]
+
+
+def event_type(code: int | None) -> str:
+    return EVENT_TYPE_BY_CODE.get(code, "other") if code is not None else "other"
+
+
+def label(code: int | None) -> str:
+    return ALARM_LABELS_NL.get(code, "Onbekend alarm") if code is not None else "Onbekend alarm"

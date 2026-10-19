@@ -1,0 +1,24 @@
+{
+  "ret": 1, "dialog": false, "code": "200", "time": 1800000000000,
+  "data": [
+    {
+      "carGroupId": "1", "carGroupName": "Standaardgroep",
+      "monitorCarsVoList": [
+        {
+          "carId": "1000001", "imei": "356789012345678", "machineName": "Demo",
+          "carNO": "XX-000-X", "machineType": 208, "active": 1, "dataStatus": 1,
+          "deviceType": 0, "simNO": "31600000000000", "iccid": "89310000000000000000",
+          "carStatus": {
+            "lat": 54.0, "lon": 3.0, "latc": 54.0, "lonc": 3.0,
+            "pointTime": 1799980000000, "heartTime": 1799999640000,
+            "staticTime": 1799945000000,
+            "speed": 0, "dir": 90, "pointType": 1, "runStatus": 1,
+            "online": 1, "accStatus": -1, "alarm": "", "status": "",
+            "exData": "gpsMileage=1645000;t=9;terminalChargingStatus=0;v=0;humidity=57;power=87;totalMileage=0",
+            "wireless": true, "distance": 0.0, "show": 0, "snapshotStatus": 0
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "WhatsGPS-account",
+        "description": "Log in met dezelfde gegevens als op www.whatsgps.com of in de WhatsGPS-app.",
+        "data": {
+          "username": "Account of IMEI",
+          "password": "Wachtwoord"
+        },
+        "data_description": {
+          "username": "De accountnaam, of het IMEI-nummer als je daarmee inlogt."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Opnieuw inloggen bij WhatsGPS",
+        "description": "WhatsGPS weigert het opgeslagen wachtwoord. Voer het huidige wachtwoord in.",
+        "data": {
+          "password": "Wachtwoord"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Account of wachtwoord onjuist.",
+      "cannot_connect": "WhatsGPS is niet bereikbaar. Probeer het later opnieuw.",
+      "unknown": "Onverwachte fout. Zie het logboek."
+    },
+    "abort": {
+      "already_configured": "Dit account is al toegevoegd.",
+      "reauth_successful": "Opnieuw ingelogd.",
+      "wrong_account": "Dit wachtwoord hoort bij een ander account."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Instellingen",
+        "data": {
+          "scan_interval": "Ververs elke (seconden)"
+        },
+        "data_description": {
+          "scan_interval": "Tussen 30 en 600 seconden. Dit verandert niets aan de tracker zelf; hoe vaak die een positie doorgeeft, bepaalt de modus op de tracker."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "speed": {
+        "name": "Snelheid"
+      },
+      "direction": {
+        "name": "Richting"
+      },
+      "position_source": {
+        "name": "Positiebron",
+        "state": {
+          "not_located": "Niet gelokaliseerd",
+          "satellite": "Satelliet",
+          "compass": "Kompas",
+          "cell_tower": "Zendmast",
+          "wifi": "Wifi",
+          "differential": "Differentieel"
+        }
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "offline": "Offline",
+          "not_located": "Niet gelokaliseerd",
+          "stationary": "Stilstaand",
+          "moving": "Rijdend",
+          "speeding": "Te snel",
+          "idling": "Stationair"
+        }
+      },
+      "last_fix": {
+        "name": "Laatste positiebepaling"
+      },
+      "last_communication": {
+        "name": "Laatste contact"
+      },
+      "tracker_battery": {
+        "name": "Tracker-accu"
+      },
+      "stationary_since": {
+        "name": "Stil sinds"
+      },
+      "external_voltage": {
+        "name": "Externe spanning"
+      },
+      "today_distance": {
+        "name": "Kilometers vandaag"
+      },
+      "total_distance": {
+        "name": "Kilometerstand tracker"
+      }
+    },
+    "binary_sensor": {
+      "ignition": {
+        "name": "Contact"
+      }
+    },
+    "event": {
+      "alarm": {
+        "name": "Alarm",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "vibration": "Trilling",
+              "power_cut": "Stroomuitval",
+              "low_battery": "Lage accu",
+              "sos": "SOS",
+              "speeding": "Te snel",
+              "geofence_exit": "Geozone verlaten",
+              "movement": "Verplaatsing",
+              "tamper": "Sabotage",
+              "magnet": "Magneet",
+              "jamming": "Signaalstoring",
+              "fake_base_station": "Valse zendmast",
+              "geofence_enter": "Geozone betreden",
+              "offline": "Offline",
+              "ignition_on": "Contact aan",
+              "ignition_off": "Contact uit",
+              "collision": "Botsing",
+              "tilt": "Kanteling",
+              "high_temperature": "Hoge temperatuur",
+              "low_temperature": "Lage temperatuur",
+              "towing": "Wegslepen",
+              "disconnected": "Losgekoppeld",
+              "connected": "Aangesloten",
+              "other": "Overig"
+            }
+          }
+        }
+      }
+    }
+  }
+}
