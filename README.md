@@ -113,6 +113,9 @@ automation:
   an update.
 - WhatsGPS blocks its static files (`statics/`) for clients that are not a browser
   ("Your request is not allowed! 003"). The API itself is not affected.
+- Signing in from Home Assistant does not end a session in the web portal (several
+  sessions at once work). Not tested: the mobile app, and after how many wrong passwords
+  WhatsGPS locks an account.
 - Only tested with an EU account on www.whatsgps.com and one tracker.
 
 ## Checking your own account

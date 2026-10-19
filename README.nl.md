@@ -120,8 +120,9 @@ Automatiseringen horen in je eigen YAML-packages, niet in deze integratie.
 - De integratie gebruikt de API van het webportaal met de vaste `appId` en `appKey` uit
   de openbare JavaScript van dat portaal. Wijzigt WhatsGPS die, dan werkt de integratie
   niet meer tot een update.
-- Niet getest: of inloggen via Home Assistant een lopende sessie in de app of het
-  portaal beeindigt, en na hoeveel foute wachtwoorden WhatsGPS een account blokkeert.
+- Inloggen via Home Assistant beeindigt een sessie in het webportaal niet (meerdere
+  sessies tegelijk werken). Niet getest: de app, en na hoeveel foute wachtwoorden
+  WhatsGPS een account blokkeert.
 
 ## Controle met je eigen account
 
