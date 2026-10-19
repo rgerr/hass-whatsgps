@@ -162,3 +162,76 @@ async def test_only_trackers_gone_from_account_can_be_removed(
     assert await async_remove_config_entry_device(hass, entry, current) is False
     stale = registry.async_get_or_create(config_entry_id=entry.entry_id, identifiers={(DOMAIN, "9999999")})
     assert await async_remove_config_entry_device(hass, entry, stale) is True
+
+
+async def test_several_alarms_in_one_round_each_become_an_event(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer: FrozenDateTimeFactory
+) -> None:
+    cloud = Cloud(aioclient_mock)
+    await _setup(hass)
+    entity_id = _event_entity(hass)
+    types: list[str] = []
+    hass.bus.async_listen(
+        "state_changed",
+        lambda e: (
+            types.append(e.data["new_state"].attributes.get("event_type")) if e.data["entity_id"] == entity_id else None
+        ),
+    )
+    cloud.alarms = [_alarm("C", 6, 9), _alarm("B", 10, 8), _alarm("A", 4, 7)]
+    await _next_alarm_round(hass, freezer)
+    # Oudste eerst, elk alarm een eigen toestand.
+    assert types == ["sos", "tamper", "geofence_exit"]
+
+
+async def test_removing_the_integration_forgets_alarms(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+    hass_storage: dict[str, Any],
+) -> None:
+    cloud = Cloud(aioclient_mock)
+    entry = await _setup(hass)
+    cloud.alarms = [_alarm("A1", 6, 2)]
+    await _next_alarm_round(hass, freezer)
+    # Het opslaan gebeurt bewust een seconde later (gebundeld).
+    freezer.tick(timedelta(seconds=2))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    key = f"{DOMAIN}.alarms.{entry.entry_id}"
+    assert key in hass_storage
+    assert hass_storage[key]["data"]["seen"] == {"1000001": ["A1"]}
+
+    assert await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+    assert key not in hass_storage
+
+    # Opnieuw toevoegen: de alarmen die er al zijn, worden niet alsnog gemeld.
+    await _setup(hass)
+    entity_id = _event_entity(hass)
+    fired: list[Event] = []
+    hass.bus.async_listen("state_changed", lambda e: fired.append(e) if e.data["entity_id"] == entity_id else None)
+    # Zelfde lijst als voor het verwijderen: A1 komt niet nog een keer binnen.
+    await _next_alarm_round(hass, freezer)
+    assert fired == []
+
+
+async def test_memory_of_version_030_is_taken_over(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+    hass_storage: dict[str, Any],
+) -> None:
+    hass_storage[f"{DOMAIN}.alarms.1000001"] = {
+        "version": 1,
+        "key": f"{DOMAIN}.alarms.1000001",
+        "data": {"seen": ["OLD"]},
+    }
+    cloud = Cloud(aioclient_mock)
+    cloud.alarms = [_alarm("NEW", 10, 5), _alarm("OLD", 25, 1)]
+    await _setup(hass)
+    state = hass.states.get(_event_entity(hass))
+    # OLD stond al in het oude geheugen; NEW is nieuw en wordt gemeld.
+    assert state is not None
+    assert state.attributes["event_type"] == "tamper"
+    await hass.async_block_till_done()
+    assert f"{DOMAIN}.alarms.1000001" not in hass_storage

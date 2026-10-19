@@ -50,17 +50,22 @@ class WhatsGPSAlarmEvent(WhatsGPSEntity, EventEntity):
 
     def __init__(self, coordinator: WhatsGPSCoordinator, car_id: str) -> None:
         super().__init__(coordinator, car_id, "alarm")
-        self._store: Store[dict[str, Any]] = Store(
-            coordinator.hass, STORAGE_VERSION, f"{DOMAIN}.alarms.{car_id}", private=True
-        )
-        self._seen: list[str] | None = None
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        stored = await self._store.async_load()
-        if stored is not None:
-            self._seen = list(stored.get("seen", []))
+        if self._car_id not in self.coordinator.alarm_seen:
+            await self._async_migrate_old_store()
         self._handle_alarms()
+
+    async def _async_migrate_old_store(self) -> None:
+        """Versie 0.3.0 bewaarde het geheugen per tracker; overnemen en opruimen."""
+        old: Store[dict[str, Any]] = Store(self.hass, STORAGE_VERSION, f"{DOMAIN}.alarms.{self._car_id}", private=True)
+        stored = await old.async_load()
+        if stored is None:
+            return
+        self.coordinator.alarm_seen[self._car_id] = list(stored.get("seen", []))
+        self.coordinator.async_save_alarm_memory()
+        await old.async_remove()
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -72,26 +77,24 @@ class WhatsGPSAlarmEvent(WhatsGPSEntity, EventEntity):
         alarms = self.coordinator.alarms.get(self._car_id)
         if alarms is None:
             return
-        if self._seen is None:
+        memory = self.coordinator.alarm_seen
+        if self._car_id not in memory:
             # Eerste keer: alles wat er al is, geldt als gemeld.
-            self._seen = [alarm.alarm_id for alarm in alarms]
-            self._save()
+            memory[self._car_id] = [alarm.alarm_id for alarm in alarms]
+            self.coordinator.async_save_alarm_memory()
             return
-        seen = set(self._seen)
+        seen_ids = memory[self._car_id]
+        seen = set(seen_ids)
         new = [alarm for alarm in alarms if alarm.alarm_id not in seen]
         if not new:
             return
         for alarm in sorted(new, key=_sort_key):
             self._trigger_event(event_type(alarm.code), _event_data(alarm))
-            self._seen.append(alarm.alarm_id)
-        self._seen = self._seen[-MAX_SEEN:]
-        self._save()
-        self.async_write_ha_state()
-
-    @callback
-    def _save(self) -> None:
-        seen = list(self._seen or [])
-        self._store.async_delay_save(lambda: {"seen": seen}, 1)
+            # Elk alarm een eigen toestand; anders ziet een automatisering alleen het laatste.
+            self.async_write_ha_state()
+            seen_ids.append(alarm.alarm_id)
+        memory[self._car_id] = seen_ids[-MAX_SEEN:]
+        self.coordinator.async_save_alarm_memory()
 
 
 def _sort_key(alarm: Alarm) -> tuple[float, str]:

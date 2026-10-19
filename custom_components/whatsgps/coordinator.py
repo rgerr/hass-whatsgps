@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import dataclasses
 from datetime import datetime, timedelta
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -24,6 +26,13 @@ from .const import (
 )
 
 type WhatsGPSConfigEntry = ConfigEntry[WhatsGPSCoordinator]
+
+ALARM_STORE_VERSION = 1
+
+
+def alarm_store_key(entry_id: str) -> str:
+    """Een opslag per integratie, zodat verwijderen ook het alarmgeheugen wist."""
+    return f"{DOMAIN}.alarms.{entry_id}"
 
 
 class WhatsGPSCoordinator(DataUpdateCoordinator[dict[str, TrackerStatus]]):
@@ -45,8 +54,23 @@ class WhatsGPSCoordinator(DataUpdateCoordinator[dict[str, TrackerStatus]]):
         self._mileage_at: datetime | None = None
         # Laatst opgehaalde alarmen per tracker; de event-entiteit kiest de nieuwe eruit.
         self.alarms: dict[str, list[Alarm]] = {}
+        # Gemelde alarm-ID's per tracker; ontbreekt een tracker, dan is er nog niets gemeld.
+        self.alarm_seen: dict[str, list[str]] = {}
+        self._alarm_store: Store[dict[str, Any]] = Store(
+            hass, ALARM_STORE_VERSION, alarm_store_key(entry.entry_id), private=True
+        )
         self._alarms_at: datetime | None = None
         self._alarm_text: dict[str, str] = {}
+
+    async def async_load_alarm_memory(self) -> None:
+        stored = await self._alarm_store.async_load()
+        seen = (stored or {}).get("seen") or {}
+        self.alarm_seen = {str(car_id): list(ids) for car_id, ids in seen.items()}
+
+    @callback
+    def async_save_alarm_memory(self) -> None:
+        snapshot = {car_id: list(ids) for car_id, ids in self.alarm_seen.items()}
+        self._alarm_store.async_delay_save(lambda: {"seen": snapshot}, 1)
 
     async def _async_update_data(self) -> dict[str, TrackerStatus]:
         try:

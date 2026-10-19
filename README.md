@@ -116,6 +116,8 @@ automation:
 - Signing in from Home Assistant does not end a session in the web portal (several
   sessions at once work). Not tested: the mobile app, and after how many wrong passwords
   WhatsGPS locks an account.
+- One tracker in two WhatsGPS accounts at once (both added to Home Assistant) is not
+  supported.
 - Only tested with an EU account on www.whatsgps.com and one tracker.
 
 ## Checking your own account

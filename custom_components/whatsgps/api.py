@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -116,7 +117,11 @@ def _epoch_ms(value: Any) -> datetime | None:
     millis = _int(value)
     if not millis or millis <= 0:
         return None
-    return datetime.fromtimestamp(millis / 1000, tz=UTC)
+    try:
+        return datetime.fromtimestamp(millis / 1000, tz=UTC)
+    except (OverflowError, ValueError, OSError):
+        # Een onzinnige tijd uit de cloud is geen reden om de hele ronde te laten mislukken.
+        return None
 
 
 def parse_ex_data(text: Any) -> dict[str, str]:
@@ -132,7 +137,9 @@ def parse_ex_data(text: Any) -> dict[str, str]:
 
 
 def parse_tracker(car: dict[str, Any]) -> TrackerStatus:
-    status = car.get("carStatus") or {}
+    status = car.get("carStatus")
+    if not isinstance(status, dict):
+        status = {}
     lat, lon = _float(status.get("lat")), _float(status.get("lon"))
     if lat is None or lon is None or (lat == 0 and lon == 0) or abs(lat) > 90 or abs(lon) > 180:
         lat = lon = None
@@ -230,33 +237,44 @@ class WhatsGPSClient:
         account: str,
         password: str,
         *,
-        timezone_seconds: int = 0,
+        timezone_seconds: int | Callable[[], int] = 0,
     ) -> None:
         self._session = session
         self._account = account
         self._password = password
+        # Een functie wordt bij elke login opnieuw bepaald (zomer- en wintertijd).
         self._timezone_seconds = timezone_seconds
         self._token: str | None = None
         self._login_lock = asyncio.Lock()
+        # Een geweigerde login wordt onthouden: geen nieuwe poging met hetzelfde wachtwoord.
+        self._refused: str | None = None
+        self._warned_alarm_shape = False
 
     async def async_login(self) -> LoginResult:
         """Inloggen; een geweigerde login wordt nooit herhaald."""
+        if self._refused is not None:
+            raise WhatsGPSAuthError(self._refused)
+        offset = self._timezone_seconds() if callable(self._timezone_seconds) else self._timezone_seconds
         form = {
             "name": self._account,
             "password": self._password,
-            "timeZoneSecond": str(self._timezone_seconds),
+            "timeZoneSecond": str(offset),
             "lang": LANGUAGE,
         }
         status, body = await self._send("POST", LOGIN_PATH, data=form)
         if status >= 500:
             raise WhatsGPSConnectionError(f"Inloggen: HTTP {status}")
-        if not isinstance(body, dict) or "ret" not in body:
-            # Bijvoorbeeld de blokkade 003 ({"message": ...}): geen oordeel over het wachtwoord.
+        code = str(body.get("code")) if isinstance(body, dict) else ""
+        if status >= 400 or not isinstance(body, dict) or "ret" not in body or code in TOKEN_INVALID_CODES:
+            # Geen oordeel over het wachtwoord: bijvoorbeeld de blokkade 003, "te veel
+            # verzoeken" (429) of een geweigerde appId/appKey (10006). Later opnieuw proberen.
             raise WhatsGPSResponseError(f"Inloggen: onverwacht antwoord, HTTP {status}")
         data = body.get("data")
         if body.get("ret") != 1 or not isinstance(data, dict) or not data.get("token"):
-            # De melding van de server bevat geen gevoelige gegevens; het account wel.
-            raise WhatsGPSAuthError(str(body.get("msg") or "Inloggen geweigerd"))
+            # HTTP 200 met een weigering: account of wachtwoord klopt niet. De melding van de
+            # server bevat geen gevoelige gegevens; het account wel.
+            self._refused = str(body.get("msg") or "Inloggen geweigerd")
+            raise WhatsGPSAuthError(self._refused)
         self._token = str(data["token"])
         LOGGER.debug("Ingelogd bij WhatsGPS")
         return LoginResult(user_id=str(data.get("userId", "")), token=self._token)
@@ -276,13 +294,17 @@ class WhatsGPSClient:
         data = await self._request("POST", MONITOR_PATH, json=body)
         if not isinstance(data, list):
             raise WhatsGPSResponseError("Statusantwoord zonder lijst")
-        return [
-            parse_tracker(car)
-            for group in data
-            if isinstance(group, dict)
-            for car in group.get("monitorCarsVoList") or []
-            if isinstance(car, dict) and car.get("carId") is not None
-        ]
+        try:
+            return [
+                parse_tracker(car)
+                for group in data
+                if isinstance(group, dict)
+                for car in group.get("monitorCarsVoList") or []
+                if isinstance(car, dict) and car.get("carId") is not None
+            ]
+        except (TypeError, ValueError, AttributeError) as err:
+            # Telt als een gewone mislukte ronde (met respijt en backoff), niet als crash.
+            raise WhatsGPSResponseError(f"Statusantwoord niet te lezen: {type(err).__name__}") from err
 
     async def async_get_mileage(self, car_id: str) -> Mileage:
         """Kilometers vandaag en totaal van een tracker, zoals het portaal ze toont."""
@@ -294,24 +316,37 @@ class WhatsGPSClient:
     async def async_get_alarms(self, car_id: str) -> list[Alarm]:
         """De meest recente alarmen van een tracker (eerste pagina)."""
         data = await self._request("POST", ALARMS_PATH, json={"pageNum": 1, "pageSize": 20, "carId": car_id})
-        items = data.get("list") if isinstance(data, dict) else data
+        items: Any = data
+        if isinstance(data, dict):
+            # Gezien: de lijst staat direct in data. Ook vormen proberen die andere
+            # Seeworld-API's gebruiken.
+            items = next((data[key] for key in ("list", "rows", "records") if isinstance(data.get(key), list)), data)
         if items is None:
             return []
         if not isinstance(items, list):
-            raise WhatsGPSResponseError("Alarmantwoord zonder lijst")
+            if not self._warned_alarm_shape:
+                self._warned_alarm_shape = True
+                LOGGER.warning(
+                    "Alarmantwoord van WhatsGPS heeft een onverwachte vorm (%s); alarmen worden niet gemeld",
+                    type(items).__name__,
+                )
+            return []
         return [parse_alarm(item) for item in items if isinstance(item, dict)]
 
     async def _request(self, method: str, path: str, **kwargs: Any) -> Any:
         """Verzoek met token; bij een verlopen token een keer opnieuw inloggen."""
         for attempt in range(2):
+            fresh = False
             async with self._login_lock:
                 if self._token is None:
                     await self.async_login()
+                    fresh = True
             status, body = await self._send(method, path, token=self._token, **kwargs)
             code = str(body.get("code")) if isinstance(body, dict) else ""
             if status == 401 or code in TOKEN_INVALID_CODES:
                 self._token = None
-                if attempt == 0:
+                # Een token van zojuist dat al wordt geweigerd: niet nog eens inloggen.
+                if attempt == 0 and not fresh:
                     LOGGER.debug("Token verlopen; opnieuw inloggen")
                     continue
                 # Een token dat direct na een geslaagde login wordt geweigerd, zegt niets over

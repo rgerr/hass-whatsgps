@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 import probatio as vol
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFlow
+from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFlowWithReload
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -56,7 +56,8 @@ class WhatsGPSConfigFlow(ConfigFlow, domain=DOMAIN):
             account = user_input[CONF_USERNAME].strip()
             result, error = await _login(self.hass, account, user_input[CONF_PASSWORD])
             if result is not None:
-                await self.async_set_unique_id(result.user_id)
+                # Zonder userId uit de cloud: de accountnaam als unieke ID.
+                await self.async_set_unique_id(result.user_id or account.lower())
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title="WhatsGPS", data={CONF_USERNAME: account, CONF_PASSWORD: user_input[CONF_PASSWORD]}
@@ -79,7 +80,7 @@ class WhatsGPSConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             result, error = await _login(self.hass, entry.data[CONF_USERNAME], user_input[CONF_PASSWORD])
             if result is not None:
-                await self.async_set_unique_id(result.user_id)
+                await self.async_set_unique_id(result.user_id or str(entry.data[CONF_USERNAME]).lower())
                 self._abort_if_unique_id_mismatch(reason="wrong_account")
                 return self.async_update_reload_and_abort(
                     entry, data_updates={CONF_PASSWORD: user_input[CONF_PASSWORD]}
@@ -93,7 +94,9 @@ class WhatsGPSConfigFlow(ConfigFlow, domain=DOMAIN):
         return WhatsGPSOptionsFlow()
 
 
-class WhatsGPSOptionsFlow(OptionsFlow):
+class WhatsGPSOptionsFlow(OptionsFlowWithReload):
+    """Na opslaan herlaadt Home Assistant de integratie zelf."""
+
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self.async_create_entry(data=user_input)

@@ -72,7 +72,8 @@ async def test_trackers_with_one_login_and_token_header(
 
 async def test_expired_token_logs_in_once_more(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
     aioclient_mock.post(LOGIN_URL, json=fixture("login.json"))
-    answers = [401, 200]
+    # Eerste ronde goed; daarna is het token verlopen (401) en volgt een keer opnieuw inloggen.
+    answers = [200, 401, 200]
 
     async def monitor(method: str, url: Any, data: Any) -> AiohttpClientMockResponse:
         status = answers.pop(0)
@@ -80,7 +81,9 @@ async def test_expired_token_logs_in_once_more(hass: HomeAssistant, aioclient_mo
         return AiohttpClientMockResponse(method, url, status=status, json=body)
 
     aioclient_mock.post(MONITOR_URL, side_effect=monitor)
-    trackers = await _client(hass).async_get_trackers()
+    client = _client(hass)
+    await client.async_get_trackers()
+    trackers = await client.async_get_trackers()
     assert len(trackers) == 1
     assert len(calls_to(aioclient_mock, LOGIN_URL)) == 2
 
@@ -92,7 +95,8 @@ async def test_token_refused_after_fresh_login_is_no_password_problem(
     mock_api(aioclient_mock, monitor={"ret": 0, "code": "10006"}, monitor_status=401)
     with pytest.raises(WhatsGPSResponseError, match="appId/appKey"):
         await _client(hass).async_get_trackers()
-    assert len(calls_to(aioclient_mock, LOGIN_URL)) == 2
+    # Het token was net nieuw: niet nog een keer inloggen.
+    assert len(calls_to(aioclient_mock, LOGIN_URL)) == 1
 
 
 async def test_wrong_password_is_not_retried(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
@@ -248,3 +252,79 @@ def test_alarm_without_id_uses_code_and_time() -> None:
     alarm = parse_alarm({"alarmType": 25, "alarmTime": 1800000000000})
     assert alarm.alarm_id == "25-" + datetime.fromtimestamp(1800000000, tz=UTC).isoformat()
     assert parse_alarm({"alarmType": "x"}).code is None
+
+
+@pytest.mark.parametrize(
+    ("status", "body"),
+    [
+        (429, {"ret": 0, "code": "429", "msg": "Too many requests"}),
+        (403, {"message": "Your request is not allowed! 003"}),
+        (200, {"ret": 0, "code": "10006", "msg": "No permission, cannot call"}),
+    ],
+)
+async def test_login_refusal_without_password_verdict_is_temporary(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, status: int, body: dict[str, Any]
+) -> None:
+    """Alleen een weigering met HTTP 200 zegt iets over het wachtwoord; de rest is tijdelijk."""
+    aioclient_mock.post(LOGIN_URL, status=status, json=body)
+    with pytest.raises(WhatsGPSResponseError):
+        await _client(hass).async_login()
+
+
+async def test_refused_login_is_remembered_without_network(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    aioclient_mock.post(LOGIN_URL, json={"ret": 0, "code": "500", "msg": "Onjuist wachtwoord"})
+    client = _client(hass)
+    for _ in range(3):
+        with pytest.raises(WhatsGPSAuthError):
+            await client.async_get_trackers()
+    # Account-blokkade voorkomen: maar een keer bij de server aangeklopt.
+    assert len(calls_to(aioclient_mock, LOGIN_URL)) == 1
+
+
+async def test_timezone_is_evaluated_at_each_login(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    aioclient_mock.post(LOGIN_URL, json=fixture("login.json"))
+    offsets = iter([7200, 3600])
+    client = WhatsGPSClient(async_get_clientsession(hass), ACCOUNT, PASSWORD, timezone_seconds=lambda: next(offsets))
+    await client.async_login()
+    await client.async_login()
+    sent = [call[2]["timeZoneSecond"] for call in calls_to(aioclient_mock, LOGIN_URL)]
+    assert sent == ["7200", "3600"]
+
+
+async def test_garbled_status_is_a_response_error(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    monitor = fixture("monitor.json")
+    monitor["data"][0]["monitorCarsVoList"][0]["carStatus"] = "geen dict"
+    monitor["data"][0]["monitorCarsVoList"][0]["machineType"] = {"x": 1}
+    mock_api(aioclient_mock, monitor=monitor)
+    trackers = await _client(hass).async_get_trackers()
+    # Een carStatus zonder structuur geeft lege waarden, geen crash.
+    assert trackers[0].latitude is None
+    assert trackers[0].status is not None
+
+
+def test_absurd_epoch_gives_none() -> None:
+    car = fixture("monitor.json")["data"][0]["monitorCarsVoList"][0]
+    car["carStatus"]["pointTime"] = 10**20
+    assert parse_tracker(car).last_fix is None
+
+
+@pytest.mark.parametrize("key", ["list", "rows", "records"])
+async def test_alarm_list_in_other_shapes(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, key: str) -> None:
+    aioclient_mock.post(LOGIN_URL, json=fixture("login.json"))
+    item = {"alarmId": "A1", "alarmType": 1, "alarmTime": "2026-10-19 09:30:00"}
+    aioclient_mock.post(ALARMS_URL, json={"ret": 1, "code": "200", "data": {key: [item], "total": 1}})
+    alarms = await _client(hass).async_get_alarms("1000001")
+    assert [a.alarm_id for a in alarms] == ["A1"]
+
+
+async def test_unexpected_alarm_shape_warns_once(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, caplog: pytest.LogCaptureFixture
+) -> None:
+    aioclient_mock.post(LOGIN_URL, json=fixture("login.json"))
+    aioclient_mock.post(ALARMS_URL, json={"ret": 1, "code": "200", "data": "onverwacht"})
+    client = _client(hass)
+    assert await client.async_get_alarms("1000001") == []
+    assert await client.async_get_alarms("1000001") == []
+    assert caplog.text.count("onverwachte vorm") == 1

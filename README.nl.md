@@ -124,6 +124,9 @@ Automatiseringen horen in je eigen YAML-packages, niet in deze integratie.
   sessies tegelijk werken). Niet getest: de app, en na hoeveel foute wachtwoorden
   WhatsGPS een account blokkeert.
 
+- Een tracker in twee WhatsGPS-accounts tegelijk (beide toegevoegd aan Home Assistant)
+  wordt niet ondersteund.
+
 ## Controle met je eigen account
 
 `scripts/probe.py` logt een keer in, doet alleen leesverzoeken en toont de antwoorden

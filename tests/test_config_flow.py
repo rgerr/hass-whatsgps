@@ -145,3 +145,31 @@ async def test_options_flow_rejects_out_of_range(hass: HomeAssistant, aioclient_
     result = await hass.config_entries.options.async_init(entry.entry_id)
     with pytest.raises(InvalidData, match="scan_interval"):
         await hass.config_entries.options.async_configure(result["flow_id"], {CONF_SCAN_INTERVAL: 10})
+
+
+async def test_reauth_on_a_loaded_entry_reloads_it(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    """Zonder update-listener: geen verouderde herlaadroute (stopt in HA 2026.12)."""
+    mock_api(aioclient_mock)
+    entry = MockConfigEntry(domain=DOMAIN, unique_id="1000001", data={**USER_INPUT, CONF_PASSWORD: "oud"})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    result = await entry.start_reauth_flow(hass)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_PASSWORD: PASSWORD})
+    await hass.async_block_till_done()
+    assert result["reason"] == "reauth_successful"
+    assert entry.state is config_entries.ConfigEntryState.LOADED
+    assert entry.data[CONF_PASSWORD] == PASSWORD
+    assert not entry.update_listeners
+
+
+async def test_missing_user_id_falls_back_to_account(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, mock_setup_entry: AsyncMock
+) -> None:
+    login = fixture("login.json")
+    del login["data"]["userId"]
+    mock_api(aioclient_mock, login=login)
+    flow_id = await _start(hass)
+    result = await hass.config_entries.flow.async_configure(flow_id, {**USER_INPUT, CONF_USERNAME: " Demo-Account "})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["result"].unique_id == "demo-account"

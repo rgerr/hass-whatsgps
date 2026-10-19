@@ -272,3 +272,49 @@ async def test_mileage_failure_keeps_entities_available(
     await _setup(hass)
     assert hass.states.get(_entity(hass, "sensor", "speed")).state == "0.0"  # type: ignore[union-attr]
     assert hass.states.get(_entity(hass, "sensor", "total_distance")).state == "unknown"  # type: ignore[union-attr]
+
+
+async def test_device_removal_refused_when_not_loaded(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    from custom_components.whatsgps import async_remove_config_entry_device
+
+    mock_api(aioclient_mock)
+    entry = await _setup(hass)
+    device = dr.async_get(hass).async_get_device_by_identifier((DOMAIN, "1000001"), entry.entry_id)
+    assert device is not None
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    # Niet geladen: niet bekend welke trackers er zijn, dus niets laten verwijderen (en geen crash).
+    assert await async_remove_config_entry_device(hass, entry, device) is False
+
+
+async def test_diagnostics_only_known_fields(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, hass_client: ClientSessionGenerator
+) -> None:
+    monitor = fixture("monitor.json")
+    car = monitor["data"][0]["monitorCarsVoList"][0]
+    car["driverTel"] = "0612345678"
+    car["carStatus"]["address"] = "Voorbeeldstraat 1"
+    mock_api(aioclient_mock, monitor=monitor)
+    entry = await _setup(hass)
+    diagnostics = await get_diagnostics_for_config_entry(hass, hass_client, entry)
+    text = str(diagnostics)
+    assert "0612345678" not in text
+    assert "Voorbeeldstraat" not in text
+    # Wel de namen, zodat een nieuw veld opvalt.
+    assert "driverTel" in diagnostics["trackers"][0]["other_fields"]
+    assert "address" in diagnostics["trackers"][0]["other_status_fields"]
+    assert diagnostics["alarm_codes"] == [[]]
+
+
+async def test_diagnostics_when_not_loaded(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, hass_client: ClientSessionGenerator
+) -> None:
+    from custom_components.whatsgps.diagnostics import async_get_config_entry_diagnostics
+
+    aioclient_mock.post(LOGIN_URL, exc=aiohttp.ClientConnectionError())
+    entry = MockConfigEntry(domain=DOMAIN, unique_id="1000001", data=USER_INPUT)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    diagnostics = await async_get_config_entry_diagnostics(hass, entry)
+    assert diagnostics["loaded"] is False
+    assert PASSWORD not in str(diagnostics)
