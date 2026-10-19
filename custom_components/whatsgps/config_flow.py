@@ -62,7 +62,13 @@ class WhatsGPSConfigFlow(ConfigFlow, domain=DOMAIN):
                     title="WhatsGPS", data={CONF_USERNAME: account, CONF_PASSWORD: user_input[CONF_PASSWORD]}
                 )
             errors["base"] = error or "unknown"
-        return self.async_show_form(step_id="user", data_schema=USER_SCHEMA, errors=errors)
+        return self.async_show_form(
+            step_id="user",
+            data_schema=USER_SCHEMA,
+            errors=errors,
+            # Geen URL in de vertaling zelf (hassfest); de portaalnaam als plaatshouder.
+            description_placeholders={"portal": "www.whatsgps.com"},
+        )
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
         return await self.async_step_reauth_confirm()

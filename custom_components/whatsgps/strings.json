@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "WhatsGPS account",
-        "description": "Sign in with the same details as on www.whatsgps.com or in the WhatsGPS app.",
+        "description": "Sign in with the same details as on {portal} or in the WhatsGPS app.",
         "data": {
           "username": "Account or IMEI",
           "password": "Password"

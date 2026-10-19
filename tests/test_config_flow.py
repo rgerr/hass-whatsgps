@@ -36,6 +36,8 @@ def mock_setup_entry() -> Generator[AsyncMock]:
 async def _start(hass: HomeAssistant) -> str:
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     assert result["type"] is FlowResultType.FORM
+    # De portaalnaam komt als plaatshouder, niet als URL in de vertaling.
+    assert result["description_placeholders"] == {"portal": "www.whatsgps.com"}
     return str(result["flow_id"])
 
 

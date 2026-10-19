@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "WhatsGPS-account",
-        "description": "Log in met dezelfde gegevens als op www.whatsgps.com of in de WhatsGPS-app.",
+        "description": "Log in met dezelfde gegevens als op {portal} of in de WhatsGPS-app.",
         "data": {
           "username": "Account of IMEI",
           "password": "Wachtwoord"
