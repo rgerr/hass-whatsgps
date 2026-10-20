@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2 (2026-10-20)
+
+- The integration has its own icon (`custom_components/whatsgps/brand/`), shown by Home
+  Assistant 2026.3 and later. It is a neutral location pin, not the WhatsGPS logo.
+- Validation runs the HACS action without exceptions.
+
 ## 0.3.1 (2026-10-19)
 
 - Several alarms in one round now each become an event (before, only the last one did).

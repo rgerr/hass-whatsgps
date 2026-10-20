@@ -25,6 +25,3 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # Brand images live in the home-assistant/brands repository; not required for a
-          # custom repository.
-          ignore: brands
