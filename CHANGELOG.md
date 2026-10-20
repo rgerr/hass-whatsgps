@@ -5,6 +5,7 @@
 - The integration has its own icon (`custom_components/whatsgps/brand/`), shown by Home
   Assistant 2026.3 and later. It is a neutral location pin, not the WhatsGPS logo.
 - Validation runs the HACS action without exceptions.
+- The manifest declares its category: presence and location, trackers.
 
 ## 0.3.1 (2026-10-19)
 

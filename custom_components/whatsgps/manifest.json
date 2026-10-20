@@ -1,6 +1,7 @@
 {
   "domain": "whatsgps",
   "name": "WhatsGPS",
+  "categories": ["presence_location.trackers"],
   "codeowners": ["@rgerr"],
   "config_flow": true,
   "documentation": "https://github.com/rgerr/hass-whatsgps",
