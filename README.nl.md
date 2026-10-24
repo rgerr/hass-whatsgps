@@ -18,9 +18,13 @@ De werking van de API staat in [docs/api.md](docs/api.md).
 
 Vereist Home Assistant 2026.10 of nieuwer.
 
-**Via HACS:** HACS > menu rechtsboven > Aangepaste repositories, voeg
-`https://github.com/rgerr/hass-whatsgps` toe als type Integratie, installeer **WhatsGPS** en
-herstart Home Assistant.
+**Via HACS of Marketplace (aanbevolen):** zoek op **WhatsGPS**, download de integratie en
+herstart Home Assistant. Vanaf Home Assistant 2026.11 zit HACS ingebouwd als Marketplace;
+in 2026.10 is het HACS.
+
+Vindt de zoekfunctie WhatsGPS niet, voeg dan `https://github.com/rgerr/hass-whatsgps` toe
+als aangepaste repository van het type Integratie (in HACS: menu rechtsboven > Aangepaste
+repositories), download **WhatsGPS** en herstart Home Assistant.
 
 **Handmatig (bijvoorbeeld Synology met Docker):** kopieer de map
 `custom_components/whatsgps` naar `config/custom_components/whatsgps` van Home Assistant
@@ -142,8 +146,8 @@ de afstand van de positie tot huis.
 
 ## Ontwikkelen
 
-- Python 3.14 met `pytest-homeassistant-custom-component==0.13.373` (Home Assistant
-  2026.10.2), `ruff` en `mypy`.
+- Python 3.14 met `pytest-homeassistant-custom-component==0.13.374` (Home Assistant
+  2026.10.3), `ruff` en `mypy`.
 - `pytest`, `ruff check .`, `ruff format --check .` en `mypy custom_components scripts tests`.
   GitHub Actions draait dezelfde stappen op Linux.
 - Op Windows importeert Home Assistant de Linux-modules `fcntl` en `resource`. Voor

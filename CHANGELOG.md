@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- README: installation now starts with searching for WhatsGPS in HACS (built in as the
+  Marketplace from Home Assistant 2026.11), which lists it by default. Adding it as a
+  custom repository is the fallback.
+
 ## 0.3.2 (2026-10-20)
 
 - The integration has its own icon (`custom_components/whatsgps/brand/`), shown by Home

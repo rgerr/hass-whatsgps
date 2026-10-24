@@ -18,9 +18,13 @@ How the API works is documented (in Dutch) in [docs/api.md](docs/api.md).
 
 Requires Home Assistant 2026.10 or later.
 
-**HACS:** HACS > top-right menu > Custom repositories, add
-`https://github.com/rgerr/hass-whatsgps` as type Integration, install **WhatsGPS** and
-restart Home Assistant.
+**HACS or Marketplace (recommended):** search for **WhatsGPS**, download it and restart
+Home Assistant. From Home Assistant 2026.11, HACS is built in as the Marketplace; on
+2026.10 it is HACS.
+
+If the search does not find WhatsGPS, add `https://github.com/rgerr/hass-whatsgps` as a
+custom repository of type Integration (in HACS: top-right menu > Custom repositories),
+download **WhatsGPS** and restart Home Assistant.
 
 **Manual:** copy `custom_components/whatsgps` to `config/custom_components/whatsgps` and
 restart Home Assistant.
@@ -139,8 +143,8 @@ portal, for working out new endpoints without exposing personal data.
 
 ## Development
 
-- Python 3.14 with `pytest-homeassistant-custom-component==0.13.373` (Home Assistant
-  2026.10.2), `ruff` and `mypy`.
+- Python 3.14 with `pytest-homeassistant-custom-component==0.13.374` (Home Assistant
+  2026.10.3), `ruff` and `mypy`.
 - `pytest`, `ruff check .`, `ruff format --check .` and
   `mypy custom_components scripts tests`. GitHub Actions runs the same on Linux.
 - On Windows, Home Assistant imports the Linux-only modules `fcntl` and `resource`; local
