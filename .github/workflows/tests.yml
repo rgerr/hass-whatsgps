@@ -13,7 +13,7 @@ jobs:
         with:
           python-version: "3.14"
       - name: Installeren
-        run: pip install "pytest-homeassistant-custom-component==0.13.373" ruff mypy
+        run: pip install "pytest-homeassistant-custom-component==0.13.374" ruff mypy
       - name: Ruff
         run: ruff check . && ruff format --check .
       - name: Mypy

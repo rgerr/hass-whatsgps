@@ -8,7 +8,7 @@ from typing import Any
 
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import Event, HomeAssistant
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
@@ -62,6 +62,22 @@ def _event_entity(hass: HomeAssistant, car_id: str = "1000001") -> str:
     return entity_id
 
 
+def _record_changes(hass: HomeAssistant, entity_id: str) -> list[Event]:
+    """Toestandswijzigingen van een entiteit, in de volgorde waarin ze gebeuren.
+
+    Een listener zonder @callback draait in een thread; dan ligt de volgorde niet vast.
+    """
+    fired: list[Event] = []
+
+    @callback
+    def _listener(event: Event) -> None:
+        if event.data["entity_id"] == entity_id:
+            fired.append(event)
+
+    hass.bus.async_listen("state_changed", _listener)
+    return fired
+
+
 async def _next_alarm_round(hass: HomeAssistant, freezer: FrozenDateTimeFactory) -> None:
     freezer.tick(timedelta(seconds=120))
     async_fire_time_changed(hass)
@@ -75,8 +91,7 @@ async def test_old_alarms_not_replayed_new_alarm_once(
     cloud.alarms = [_alarm("OLD", 25, 1)]
     await _setup(hass)
     entity_id = _event_entity(hass)
-    fired: list[Event] = []
-    hass.bus.async_listen("state_changed", lambda e: fired.append(e) if e.data["entity_id"] == entity_id else None)
+    fired = _record_changes(hass, entity_id)
     assert hass.states.get(entity_id).state == "unknown"  # type: ignore[union-attr]
 
     cloud.alarms = [_alarm("NEW", 10, 5), *cloud.alarms]
@@ -107,8 +122,7 @@ async def test_each_alarm_once_after_restart(
     freezer.tick(timedelta(seconds=5))
     assert await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
-    fired: list[Event] = []
-    hass.bus.async_listen("state_changed", lambda e: fired.append(e) if e.data["entity_id"] == entity_id else None)
+    fired = _record_changes(hass, entity_id)
     await _next_alarm_round(hass, freezer)
     assert fired == []
     cloud.alarms = [_alarm("A2", 3, 7), *cloud.alarms]
@@ -170,17 +184,11 @@ async def test_several_alarms_in_one_round_each_become_an_event(
     cloud = Cloud(aioclient_mock)
     await _setup(hass)
     entity_id = _event_entity(hass)
-    types: list[str] = []
-    hass.bus.async_listen(
-        "state_changed",
-        lambda e: (
-            types.append(e.data["new_state"].attributes.get("event_type")) if e.data["entity_id"] == entity_id else None
-        ),
-    )
+    fired = _record_changes(hass, entity_id)
     cloud.alarms = [_alarm("C", 6, 9), _alarm("B", 10, 8), _alarm("A", 4, 7)]
     await _next_alarm_round(hass, freezer)
     # Oudste eerst, elk alarm een eigen toestand.
-    assert types == ["sos", "tamper", "geofence_exit"]
+    assert [e.data["new_state"].attributes.get("event_type") for e in fired] == ["sos", "tamper", "geofence_exit"]
 
 
 async def test_removing_the_integration_forgets_alarms(
@@ -208,8 +216,7 @@ async def test_removing_the_integration_forgets_alarms(
     # Opnieuw toevoegen: de alarmen die er al zijn, worden niet alsnog gemeld.
     await _setup(hass)
     entity_id = _event_entity(hass)
-    fired: list[Event] = []
-    hass.bus.async_listen("state_changed", lambda e: fired.append(e) if e.data["entity_id"] == entity_id else None)
+    fired = _record_changes(hass, entity_id)
     # Zelfde lijst als voor het verwijderen: A1 komt niet nog een keer binnen.
     await _next_alarm_round(hass, freezer)
     assert fired == []
