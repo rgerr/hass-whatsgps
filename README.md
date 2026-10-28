@@ -143,8 +143,8 @@ portal, for working out new endpoints without exposing personal data.
 
 ## Development
 
-- Python 3.14 with `pytest-homeassistant-custom-component==0.13.374` (Home Assistant
-  2026.10.3), `ruff` and `mypy`.
+- Python 3.14 with `pytest-homeassistant-custom-component==0.13.375` (Home Assistant
+  2026.10.4), `ruff` and `mypy`.
 - `pytest`, `ruff check .`, `ruff format --check .` and
   `mypy custom_components scripts tests`. GitHub Actions runs the same on Linux.
 - On Windows, Home Assistant imports the Linux-only modules `fcntl` and `resource`; local

@@ -146,8 +146,8 @@ de afstand van de positie tot huis.
 
 ## Ontwikkelen
 
-- Python 3.14 met `pytest-homeassistant-custom-component==0.13.374` (Home Assistant
-  2026.10.3), `ruff` en `mypy`.
+- Python 3.14 met `pytest-homeassistant-custom-component==0.13.375` (Home Assistant
+  2026.10.4), `ruff` en `mypy`.
 - `pytest`, `ruff check .`, `ruff format --check .` en `mypy custom_components scripts tests`.
   GitHub Actions draait dezelfde stappen op Linux.
 - Op Windows importeert Home Assistant de Linux-modules `fcntl` en `resource`. Voor
