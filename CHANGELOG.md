@@ -5,6 +5,8 @@
 - README: installation now starts with searching for WhatsGPS in HACS (built in as the
   Marketplace from Home Assistant 2026.11), which lists it by default. Adding it as a
   custom repository is the fallback.
+- Renaming an entity ID in Home Assistant 2026.11 and later happens in place, also for the
+  alarm entity (before, Home Assistant removed and re-added it).
 
 ## 0.3.2 (2026-10-20)
 

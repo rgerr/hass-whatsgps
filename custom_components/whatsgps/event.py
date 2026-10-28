@@ -57,6 +57,14 @@ class WhatsGPSAlarmEvent(WhatsGPSEntity, EventEntity):
             await self._async_migrate_old_store()
         self._handle_alarms()
 
+    @callback
+    def async_entity_id_changed(self, old_entity_id: str) -> None:
+        """Een nieuwe entity_id kan ter plekke: niets hier hangt van de entity_id af.
+
+        Vanaf Home Assistant 2026.11. Zonder deze methode verwijdert HA de entiteit bij
+        hernoemen en voegt hem opnieuw toe. De basisklasse doet hier niets, dus geen super().
+        """
+
     async def _async_migrate_old_store(self) -> None:
         """Versie 0.3.0 bewaarde het geheugen per tracker; overnemen en opruimen."""
         old: Store[dict[str, Any]] = Store(self.hass, STORAGE_VERSION, f"{DOMAIN}.alarms.{self._car_id}", private=True)
