@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.3.3 (2026-10-29)
+
+Ready for Home Assistant 2026.11. Update through HACS (the Marketplace from 2026.11) and
+restart Home Assistant; nothing needs to be set up again.
 
 - README: installation now starts with searching for WhatsGPS in HACS (built in as the
   Marketplace from Home Assistant 2026.11), which lists it by default. Adding it as a
